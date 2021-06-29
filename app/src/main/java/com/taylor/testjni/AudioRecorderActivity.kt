@@ -29,6 +29,7 @@ class AudioRecorderActivity : AppCompatActivity() {
             }
         }
     }
+    private val audioJniUtil = AudioJniUtil()
     private val mainScope = MainScope()
 
     private val mediaManager by lazy {
@@ -170,6 +171,24 @@ class AudioRecorderActivity : AppCompatActivity() {
             }
 
             TextView {
+                layout_id = "src"
+                layout_width = wrap_content
+                layout_height = wrap_content
+                textSize = 20f
+                textColor = "#ffffff"
+                text = "src"
+                gravity = gravity_center
+                padding = 10
+                shape = shape {
+                    solid_color = "#ff00ff"
+                    corner_radius = 10
+                }
+                onClick = {
+                    src()
+                }
+            }
+
+            TextView {
                 layout_id = "monitor"
                 layout_width = wrap_content
                 layout_height = wrap_content
@@ -187,6 +206,19 @@ class AudioRecorderActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun src() {
+        val srcParams = SrcParams()
+        srcParams.inSampleRate = 48000
+        srcParams.channel = 1
+        srcParams.outSampleRate = 16000
+        srcParams.quality = 4
+        audioJniUtil.srcInit(srcParams)
+        audioFile?.let {
+            val srcOutFile = File(it.absolutePath.dropLast(4) + "-src.pcm")
+            audioJniUtil.srcProcess(it.absolutePath, srcOutFile.absolutePath)
         }
     }
 
