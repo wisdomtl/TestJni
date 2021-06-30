@@ -256,13 +256,21 @@ class AudioRecorderActivity : AppCompatActivity() {
             fs = SAMPLE_RATE
             maxDenoiseDb = -20
         })
+        audioJniUtil.agcInit(AgcParams().apply {
+            fs = SAMPLE_RATE.toLong()
+            targetLevelDbfs = 7
+            compressionGainDb = 12
+            limiterEnable = true
+        })
         pcmFile?.let {
 //            val srcOutFile = File(it.absolutePath.dropLast(4) + "-src.pcm")
 //            audioJniUtil.srcProcess(it.absolutePath, srcOutFile.absolutePath)
             val nsOutFile = File(it.absolutePath.dropLast(4) + "-ns.pcm")
             audioJniUtil.nsProcess(it.absolutePath, nsOutFile.absolutePath)
-            goodPcmFile = nsOutFile
-            pcmToAac(nsOutFile)
+            val agcFile = File(it.absolutePath.dropLast(4) + "-agc.pcm")
+            audioJniUtil.agcProcess(nsOutFile.absolutePath, agcFile.absolutePath)
+            goodPcmFile = agcFile
+            pcmToAac(goodPcmFile)
         }
     }
 

@@ -163,36 +163,40 @@ Java_util_AudioJniUtil_agcInit(JNIEnv *env, jobject thiz, jobject agc_params) {
     jclass agcParamsJclass = (*env).GetObjectClass(agc_params);
     if (agcParamsJclass == NULL) return -100;
 
-    jfieldID fsFieldId = (*env).GetFieldID(agcParamsJclass, "fs", "I");
+    jfieldID fsFieldId = (*env).GetFieldID(agcParamsJclass, "fs", "J");
     if (fsFieldId == NULL) return -100;
-    jint fs = (*env).GetIntField(agc_params, fsFieldId);
+    jlong fs = (*env).GetLongField(agc_params, fsFieldId);
 
-    jfieldID targetLevelDbFsFieldId = (*env).GetFieldID(agcParamsJclass, "targetLevelDbfs", "I");
+    jfieldID targetLevelDbFsFieldId = (*env).GetFieldID(agcParamsJclass, "targetLevelDbfs", "S");
     if (targetLevelDbFsFieldId == NULL) return -100;
-    jint targetLevelDbfs = (*env).GetIntField(agc_params, targetLevelDbFsFieldId);
-//
-//    jfieldID compressionGainDbFieldId = (*env).GetFieldID(agcParamsJclass, "compressionGainDb",
-//                                                          "I");
-//    if (compressionGainDbFieldId == NULL) return -100;
-//    jint compressionGainDb = (*env).GetIntField(agc_params, compressionGainDbFieldId);
-//
-//    jfieldID limiterEnableFieldId = (*env).GetFieldID(agcParamsJclass, "limiterEnable", "I");
-//    if (limiterEnableFieldId == NULL) return -100;
-//    jint limiterEnable = (*env).GetIntField(agc_params, limiterEnableFieldId);
+    jshort targetLevelDbfs = (*env).GetShortField(agc_params, targetLevelDbFsFieldId);
 
-//    stAGCParams stAgcParams = {fs, targetLevelDbfs, compressionGainDb, limiterEnable};
+    jfieldID compressionGainDbFieldId = (*env).GetFieldID(agcParamsJclass, "compressionGainDb",
+                                                          "S");
+    if (compressionGainDbFieldId == NULL) return -100;
+    jshort compressionGainDb = (*env).GetShortField(agc_params, compressionGainDbFieldId);
 
-//    // init ns
-//    ret = TT_NS_Init(pAgc, &stNsParams);
-//    if (ret != 0) {
-//        printf("init ns error! code=%d\n", ret);
-//    }
-//
-//    // save ns instance pointer in java
-//    jclass objectJclass = env->GetObjectClass(thiz);
-//    jfieldID nsPtrJfieldId = env->GetFieldID(objectJclass, "nsPtr", "J");
-//    env->SetLongField(thiz, nsPtrJfieldId, (jlong) pAgc);
-//    return 0;
+    jfieldID limiterEnableFieldId = env->GetFieldID(agcParamsJclass, "limiterEnable", "Z");
+    if (limiterEnableFieldId == NULL) return -100;
+    jboolean limiterEnable = (*env).GetBooleanField(agc_params, limiterEnableFieldId);
+
+    unsigned int fsInt = fs & 0xffffffff;
+    char limiterEnableChar = 1;
+    if (limiterEnable) { limiterEnableChar = 1; } else { limiterEnableChar = 0; }
+
+    stAGCParams stAgcParams = {fsInt, targetLevelDbfs, compressionGainDb, limiterEnableChar};
+
+    // init agc
+    ret = TT_AGC_Init(pAgc, &stAgcParams);
+    if (ret != 0) {
+        printf("init agc error! code=%d\n", ret);
+    }
+
+    // save agc instance pointer in java
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID nsPtrJfieldId = env->GetFieldID(objectJclass, "agcPtr", "J");
+    env->SetLongField(thiz, nsPtrJfieldId, (jlong) pAgc);
+    return 0;
 }
 
 extern "C"
