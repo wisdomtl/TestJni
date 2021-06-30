@@ -253,7 +253,7 @@ class AudioRecorderActivity : AppCompatActivity() {
 //            quality = 4
 //        })
         audioJniUtil.nsInit(NsParams().apply {
-            fs = 32000
+            fs = SAMPLE_RATE
             maxDenoiseDb = -20
         })
         pcmFile?.let {

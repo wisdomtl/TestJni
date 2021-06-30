@@ -1,6 +1,5 @@
 package util
 
-import android.media.MediaCodec
 import android.media.MediaCodec.*
 import android.media.MediaCodecInfo.CodecProfileLevel.AACObjectLC
 import android.media.MediaCodecList
@@ -8,13 +7,14 @@ import android.media.MediaCodecList.REGULAR_CODECS
 import android.media.MediaFormat
 import android.media.MediaFormat.MIMETYPE_AUDIO_AAC
 import util.AudioManager.Companion.CHANNEL
+import util.AudioManager.Companion.ENCODER_SAMPLE_RATE
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
 object PcmEncoder {
 
-//    val BYTE_PER_AUDIO_SAMPLE = AudioManager.SAMPLE_RATE * CHANNEL * 16 / 8
+    val BYTE_PER_AUDIO_SAMPLE = ENCODER_SAMPLE_RATE * CHANNEL * 16 / 8
     private const val TIMEOUT = 10_000L
     private const val ADTS_BIT_COUNT = 7
 
@@ -22,7 +22,7 @@ object PcmEncoder {
         //todo test file not exist
         val pcmInputStream = runCatching { FileInputStream(pcmFile) }.getOrNull() ?: return
         val aacOutputStream = runCatching { FileOutputStream(aacFile) }.getOrNull() ?: return
-        val encoder = runCatching { createEncoder(CHANNEL, AudioManager.SAMPLE_RATE) }.getOrNull() ?: return
+        val encoder = runCatching { createEncoder(CHANNEL, ENCODER_SAMPLE_RATE) }.getOrNull() ?: return
         val bufferInfo = BufferInfo()
 
         var outputFinish = false
@@ -33,23 +33,22 @@ object PcmEncoder {
         try {// 1. start encoding
             encoder.start()
             // keep looping until all audio data is encoded
-            while (! outputFinish) {
+            while (!outputFinish) {
                 // 2. offer pcm data to encoder by buffer
-                if (! inputFinish) {
+                if (!inputFinish) {
                     encoder.dequeueInputBuffer(TIMEOUT).takeIf { it >= 0 }?.let { index ->
                         encoder.getInputBuffer(index)?.let { buffer ->
                             buffer.clear()
                             val bytes = ByteArray(buffer.limit())
                             val readByteCount = pcmInputStream.read(bytes)
-                            inputFinish = readByteCount == - 1
+                            inputFinish = readByteCount == -1
                             if (inputFinish) {
                                 encoder.queueInputBuffer(index, 0, 0, 0, BUFFER_FLAG_END_OF_STREAM)
                             } else {
                                 buffer.put(bytes)
                                 encoder.queueInputBuffer(index, 0, readByteCount, presentationTimeUs, 0)
                                 totalReadByteCount += readByteCount
-                                presentationTimeUs = 0
-//                                presentationTimeUs = ((totalReadByteCount.toFloat() / BYTE_PER_AUDIO_SAMPLE) * 1_000_000).toLong()
+                                presentationTimeUs = ((totalReadByteCount.toFloat() / BYTE_PER_AUDIO_SAMPLE) * 1_000_000).toLong()
                             }
                         }
                     }
@@ -69,7 +68,7 @@ object PcmEncoder {
                                 buffer.position(bufferInfo.offset)
                                 buffer.limit(bufferInfo.offset + bufferInfo.size)
                                 val adtsPacketSize = bufferInfo.size + ADTS_BIT_COUNT
-                                ByteArray(adtsPacketSize).addAdts(adtsPacketSize).also { aacByte ->
+                                ByteArray(adtsPacketSize).addAdts(adtsPacketSize, ENCODER_SAMPLE_RATE).also { aacByte ->
                                     buffer.get(aacByte, ADTS_BIT_COUNT, bufferInfo.size)
                                     aacOutputStream.write(aacByte)
                                 }
@@ -87,9 +86,14 @@ object PcmEncoder {
         }
     }
 
-    private fun ByteArray.addAdts(packetSize: Int): ByteArray {
+    private fun ByteArray.addAdts(packetSize: Int, sampleRate: Int): ByteArray {
         val profile = 2 //AAC LC
-        val freqIdx = 4 //44.1KHz
+        val freqIdx = when (sampleRate) {
+            44100 -> 4
+            32000 -> 5
+            16000 -> 8
+            else -> 44100
+        }
         val channel = 1 //CPE
         // fill in ADTS data
         this[0] = 0xFF.toByte()

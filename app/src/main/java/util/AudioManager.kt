@@ -34,7 +34,8 @@ class AudioManager(val context: Context, val type: String = AAC) :
         const val PCM = "pcm"
 
         const val SOURCE = MediaRecorder.AudioSource.MIC
-        const val SAMPLE_RATE = 44100
+        const val SAMPLE_RATE = 32000
+        const val ENCODER_SAMPLE_RATE = 32000
         const val CHANNEL = 1
     }
 
