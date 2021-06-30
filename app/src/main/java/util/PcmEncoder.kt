@@ -7,7 +7,6 @@ import android.media.MediaCodecList
 import android.media.MediaCodecList.REGULAR_CODECS
 import android.media.MediaFormat
 import android.media.MediaFormat.MIMETYPE_AUDIO_AAC
-import android.util.Log
 import util.AudioManager.Companion.CHANNEL
 import java.io.File
 import java.io.FileInputStream
@@ -15,7 +14,7 @@ import java.io.FileOutputStream
 
 object PcmEncoder {
 
-    val BYTE_PER_AUDIO_SAMPLE = AudioManager.OUT_SAMPLE_RATE * CHANNEL * 16 / 8
+//    val BYTE_PER_AUDIO_SAMPLE = AudioManager.SAMPLE_RATE * CHANNEL * 16 / 8
     private const val TIMEOUT = 10_000L
     private const val ADTS_BIT_COUNT = 7
 
@@ -23,8 +22,8 @@ object PcmEncoder {
         //todo test file not exist
         val pcmInputStream = runCatching { FileInputStream(pcmFile) }.getOrNull() ?: return
         val aacOutputStream = runCatching { FileOutputStream(aacFile) }.getOrNull() ?: return
-        val encoder = runCatching { createEncoder(CHANNEL, AudioManager.OUT_SAMPLE_RATE) }.getOrNull() ?: return
-        val bufferInfo = MediaCodec.BufferInfo()
+        val encoder = runCatching { createEncoder(CHANNEL, AudioManager.SAMPLE_RATE) }.getOrNull() ?: return
+        val bufferInfo = BufferInfo()
 
         var outputFinish = false
         var inputFinish = false
@@ -49,7 +48,8 @@ object PcmEncoder {
                                 buffer.put(bytes)
                                 encoder.queueInputBuffer(index, 0, readByteCount, presentationTimeUs, 0)
                                 totalReadByteCount += readByteCount
-                                presentationTimeUs = ((totalReadByteCount.toFloat() / BYTE_PER_AUDIO_SAMPLE) * 1_000_000).toLong()
+                                presentationTimeUs = 0
+//                                presentationTimeUs = ((totalReadByteCount.toFloat() / BYTE_PER_AUDIO_SAMPLE) * 1_000_000).toLong()
                             }
                         }
                     }

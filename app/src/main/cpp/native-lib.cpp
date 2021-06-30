@@ -167,9 +167,9 @@ Java_util_AudioJniUtil_agcInit(JNIEnv *env, jobject thiz, jobject agc_params) {
     if (fsFieldId == NULL) return -100;
     jint fs = (*env).GetIntField(agc_params, fsFieldId);
 
-//    jfieldID targetLevelDbFsFieldId = (*env).GetFieldID(agcParamsJclass, "targetLevelDbfs", "I");
-//    if (targetLevelDbFsFieldId == NULL) return -100;
-//    jint targetLevelDbfs = (*env).GetIntField(agc_params, targetLevelDbFsFieldId);
+    jfieldID targetLevelDbFsFieldId = (*env).GetFieldID(agcParamsJclass, "targetLevelDbfs", "I");
+    if (targetLevelDbFsFieldId == NULL) return -100;
+    jint targetLevelDbfs = (*env).GetIntField(agc_params, targetLevelDbFsFieldId);
 //
 //    jfieldID compressionGainDbFieldId = (*env).GetFieldID(agcParamsJclass, "compressionGainDb",
 //                                                          "I");

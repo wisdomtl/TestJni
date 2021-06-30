@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 import util.AudioManager
 import java.io.File
 import util.*
-import util.AudioManager.Companion.OUT_SAMPLE_RATE
 import util.AudioManager.Companion.SAMPLE_RATE
 
 @SuppressLint("ClickableViewAccessibility")
@@ -32,7 +31,7 @@ class AudioRecorderActivity : AppCompatActivity() {
     }
 
     private val _44100AudioTrackManager = AudioTrackManager(44100)
-    private val _16000AudioTrackManager = AudioTrackManager(16000)
+    private val _32000AudioTrackManager = AudioTrackManager(32000)
     private val audioJniUtil = AudioJniUtil()
     private val mainScope = MainScope()
 
@@ -146,7 +145,7 @@ class AudioRecorderActivity : AppCompatActivity() {
                     solid_color = "#0000ff"
                 }
                 onClick = {
-                    playPcm(pcmFile,44100)
+                    playPcm(pcmFile, SAMPLE_RATE)
                 }
             }
 
@@ -188,7 +187,7 @@ class AudioRecorderActivity : AppCompatActivity() {
                     corner_radius = 10
                 }
                 onClick = {
-                    src()
+                    src_ns()
                 }
             }
 
@@ -209,7 +208,7 @@ class AudioRecorderActivity : AppCompatActivity() {
                     corner_radius = 10
                 }
                 onClick = {
-                    playPcm(goodPcmFile,16000)
+                    playPcm(goodPcmFile, 44100)
                 }
             }
 
@@ -218,11 +217,12 @@ class AudioRecorderActivity : AppCompatActivity() {
                 layout_width = wrap_content
                 layout_height = wrap_content
                 textSize = 30f
-                textColor = "#000000"
+                textColor = "#ffffff"
                 text = "pcm to aac"
                 gravity = gravity_center
                 top_toBottomOf = "src"
                 start_toStartOf = parent_id
+                margin_top = 10
                 shape = shape {
                     solid_color = "#ff00ff"
                     corner_radius = 10
@@ -241,29 +241,29 @@ class AudioRecorderActivity : AppCompatActivity() {
     private fun playPcm(pcmFile: File?, sampleRate: Int) {
         pcmFile?.absolutePath?.let {
             if (sampleRate == 44100) _44100AudioTrackManager.startPlay(it)
-            else _16000AudioTrackManager.startPlay(it)
+            else if (sampleRate == 32000) _32000AudioTrackManager.startPlay(it)
         }
     }
 
-    private fun src() {
-        audioJniUtil.srcInit(SrcParams().apply {
-            inSampleRate = SAMPLE_RATE
-            channel = 1
-            outSampleRate = OUT_SAMPLE_RATE
-            quality = 4
-        })
+    private fun src_ns() {
+//        audioJniUtil.srcInit(SrcParams().apply {
+//            inSampleRate = SAMPLE_RATE
+//            outSampleRate = OUT_SAMPLE_RATE
+//            channel = 1
+//            quality = 4
+//        })
         audioJniUtil.nsInit(NsParams().apply {
-            fs = OUT_SAMPLE_RATE
+            fs = 32000
             maxDenoiseDb = -20
         })
         pcmFile?.let {
-            val srcOutFile = File(it.absolutePath.dropLast(4) + "-src.pcm")
-            audioJniUtil.srcProcess(it.absolutePath, srcOutFile.absolutePath)
+//            val srcOutFile = File(it.absolutePath.dropLast(4) + "-src.pcm")
+//            audioJniUtil.srcProcess(it.absolutePath, srcOutFile.absolutePath)
             val nsOutFile = File(it.absolutePath.dropLast(4) + "-ns.pcm")
+            audioJniUtil.nsProcess(it.absolutePath, nsOutFile.absolutePath)
             goodPcmFile = nsOutFile
-            audioJniUtil.nsProcess(srcOutFile.absolutePath, nsOutFile.absolutePath)
+            pcmToAac(nsOutFile)
         }
-        pcmToAac(goodPcmFile)
     }
 
     private fun pcmToAac(pcmFile: File?) {
