@@ -1,6 +1,5 @@
-package util
+package layout
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Resources

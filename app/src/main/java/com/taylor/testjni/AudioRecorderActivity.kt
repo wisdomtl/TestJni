@@ -11,10 +11,13 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import layout.*
 import util.AudioManager
 import java.io.File
 import util.*
 import util.AudioManager.Companion.SAMPLE_RATE
+import util.bean.AgcParams
+import util.bean.NsParams
 
 @SuppressLint("ClickableViewAccessibility")
 class AudioRecorderActivity : AppCompatActivity() {

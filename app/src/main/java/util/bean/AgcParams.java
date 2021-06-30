@@ -1,4 +1,4 @@
-package util;
+package util.bean;
 
 public class AgcParams {
     private short targetLevelDbfs;

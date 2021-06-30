@@ -1,4 +1,4 @@
-package util;
+package util.bean;
 
 public class SrcParams {
     private int inSampleRate;

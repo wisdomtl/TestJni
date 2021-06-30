@@ -1,4 +1,4 @@
-package util;
+package util.bean;
 
 public class NsParams {
     private int fs;

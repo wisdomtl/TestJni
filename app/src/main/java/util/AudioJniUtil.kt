@@ -1,6 +1,13 @@
 package util
 
+import util.bean.AgcParams
+import util.bean.NsParams
+import util.bean.SrcParams
 
+
+/**
+ * communicate with audio so file
+ */
 class AudioJniUtil {
     /**
      * src(sample rate change) pointer in c
@@ -29,7 +36,7 @@ class AudioJniUtil {
     companion object {
         // Used to load the 'native-lib' library on application startup.
         init {
-            System.loadLibrary("native-lib")
+            System.loadLibrary("audio-lib")
         }
     }
 
