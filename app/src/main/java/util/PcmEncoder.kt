@@ -2,7 +2,6 @@ package util
 
 import android.media.MediaCodec
 import android.media.MediaCodec.*
-import android.media.MediaCodecInfo
 import android.media.MediaCodecInfo.CodecProfileLevel.AACObjectLC
 import android.media.MediaCodecList
 import android.media.MediaCodecList.REGULAR_CODECS
@@ -10,14 +9,13 @@ import android.media.MediaFormat
 import android.media.MediaFormat.MIMETYPE_AUDIO_AAC
 import android.util.Log
 import util.AudioManager.Companion.CHANNEL
-import util.AudioManager.Companion.SAMPLE_RATE
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
 object PcmEncoder {
 
-    val BYTE_PER_AUDIO_SAMPLE = SAMPLE_RATE * CHANNEL * 16 / 8
+    val BYTE_PER_AUDIO_SAMPLE = AudioManager.OUT_SAMPLE_RATE * CHANNEL * 16 / 8
     private const val TIMEOUT = 10_000L
     private const val ADTS_BIT_COUNT = 7
 
@@ -25,7 +23,7 @@ object PcmEncoder {
         //todo test file not exist
         val pcmInputStream = runCatching { FileInputStream(pcmFile) }.getOrNull() ?: return
         val aacOutputStream = runCatching { FileOutputStream(aacFile) }.getOrNull() ?: return
-        val encoder = runCatching { createEncoder(CHANNEL, SAMPLE_RATE) }.getOrNull() ?: return
+        val encoder = runCatching { createEncoder(CHANNEL, AudioManager.OUT_SAMPLE_RATE) }.getOrNull() ?: return
         val bufferInfo = MediaCodec.BufferInfo()
 
         var outputFinish = false
@@ -64,7 +62,6 @@ object PcmEncoder {
                             encoder.releaseOutputBuffer(index, false)
                         }
                         bufferInfo.flags.and(BUFFER_FLAG_END_OF_STREAM) != 0 -> { // no more buffer
-                            Log.v("ttaylor","toAac() end of loop")
                             outputFinish = true
                         }
                         bufferInfo.size != 0 -> {

@@ -2,11 +2,9 @@ package com.taylor.testjni
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.MotionEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -16,19 +14,25 @@ import kotlinx.coroutines.launch
 import util.AudioManager
 import java.io.File
 import util.*
+import util.AudioManager.Companion.OUT_SAMPLE_RATE
+import util.AudioManager.Companion.SAMPLE_RATE
 
 @SuppressLint("ClickableViewAccessibility")
 class AudioRecorderActivity : AppCompatActivity() {
 
-    private var audioFile: File? = null
+    private var pcmFile: File? = null
     private var mediaFile: File? = null
+    private var goodPcmFile: File? = null
     private val audioManager by lazy {
         AudioManager(this, AudioManager.PCM).apply {
             onRecordSuccess = { file: File, l: Long ->
-                audioFile = file
+                pcmFile = file
             }
         }
     }
+
+    private val _44100AudioTrackManager = AudioTrackManager(44100)
+    private val _16000AudioTrackManager = AudioTrackManager(16000)
     private val audioJniUtil = AudioJniUtil()
     private val mainScope = MainScope()
 
@@ -142,9 +146,7 @@ class AudioRecorderActivity : AppCompatActivity() {
                     solid_color = "#0000ff"
                 }
                 onClick = {
-                    audioFile?.absolutePath?.let {
-                        AudioTrackManager.instance?.startPlay(it)
-                    }
+                    playPcm(pcmFile,44100)
                 }
             }
 
@@ -176,8 +178,10 @@ class AudioRecorderActivity : AppCompatActivity() {
                 layout_height = wrap_content
                 textSize = 20f
                 textColor = "#ffffff"
-                text = "src"
+                text = "src+ns"
                 gravity = gravity_center
+                start_toStartOf = parent_id
+                top_toTopOf = parent_id
                 padding = 10
                 shape = shape {
                     solid_color = "#ff00ff"
@@ -189,6 +193,27 @@ class AudioRecorderActivity : AppCompatActivity() {
             }
 
             TextView {
+                layout_id = "playGoodPcm"
+                layout_width = wrap_content
+                layout_height = wrap_content
+                textSize = 20f
+                textColor = "#ffffff"
+                text = "play good pcm"
+                gravity = gravity_center
+                start_toEndOf = "src"
+                margin_start = 10
+                top_toTopOf = parent_id
+                padding = 10
+                shape = shape {
+                    solid_color = "#ff00ff"
+                    corner_radius = 10
+                }
+                onClick = {
+                    playPcm(goodPcmFile,16000)
+                }
+            }
+
+            TextView {
                 layout_id = "monitor"
                 layout_width = wrap_content
                 layout_height = wrap_content
@@ -196,29 +221,55 @@ class AudioRecorderActivity : AppCompatActivity() {
                 textColor = "#000000"
                 text = "pcm to aac"
                 gravity = gravity_center
-                bottom_toBottomOf = parent_id
-                center_horizontal = true
+                top_toBottomOf = "src"
+                start_toStartOf = parent_id
+                shape = shape {
+                    solid_color = "#ff00ff"
+                    corner_radius = 10
+                }
                 onClick = {
-                    audioFile?.let {
+                    pcmFile?.let {
                         val aacFile = File(it.absolutePath.dropLast(4) + ".aac")
 //                        AacPcmCoder.encodePcmToAac(audioFile,aacFile)
-                        mainScope.launch { PcmEncoder.toAac(audioFile, aacFile) }
+                        mainScope.launch { PcmEncoder.toAac(pcmFile, aacFile) }
                     }
                 }
             }
         }
     }
 
+    private fun playPcm(pcmFile: File?, sampleRate: Int) {
+        pcmFile?.absolutePath?.let {
+            if (sampleRate == 44100) _44100AudioTrackManager.startPlay(it)
+            else _16000AudioTrackManager.startPlay(it)
+        }
+    }
+
     private fun src() {
-        val srcParams = SrcParams()
-        srcParams.inSampleRate = 48000
-        srcParams.channel = 1
-        srcParams.outSampleRate = 16000
-        srcParams.quality = 4
-        audioJniUtil.srcInit(srcParams)
-        audioFile?.let {
+        audioJniUtil.srcInit(SrcParams().apply {
+            inSampleRate = SAMPLE_RATE
+            channel = 1
+            outSampleRate = OUT_SAMPLE_RATE
+            quality = 4
+        })
+        audioJniUtil.nsInit(NsParams().apply {
+            fs = OUT_SAMPLE_RATE
+            maxDenoiseDb = -20
+        })
+        pcmFile?.let {
             val srcOutFile = File(it.absolutePath.dropLast(4) + "-src.pcm")
             audioJniUtil.srcProcess(it.absolutePath, srcOutFile.absolutePath)
+            val nsOutFile = File(it.absolutePath.dropLast(4) + "-ns.pcm")
+            goodPcmFile = nsOutFile
+            audioJniUtil.nsProcess(srcOutFile.absolutePath, nsOutFile.absolutePath)
+        }
+        pcmToAac(goodPcmFile)
+    }
+
+    private fun pcmToAac(pcmFile: File?) {
+        pcmFile?.let {
+            val aacFile = File(it.absolutePath.dropLast(4) + ".aac")
+            mainScope.launch { PcmEncoder.toAac(pcmFile, aacFile) }
         }
     }
 

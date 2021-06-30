@@ -1,6 +1,8 @@
 #include <jni.h>
 #include <string>
 #include <sample_rate_change_api.h>
+#include <noise_suppress_api.h>
+#include <agc_process_api.h>
 
 
 //jni中 jstring转换成 char* 的函数
@@ -21,13 +23,6 @@ char *jstringTostring(JNIEnv *env, jstring jstr) {
     }
     env->ReleaseByteArrayElements(barr, ba, 0);
     return rtn;
-}
-
-extern "C"
-JNIEXPORT jint JNICALL
-Java_util_AudioJniUtil_getVersion(JNIEnv *env, jobject thiz, jstring string, jint length) {
-    const char *string1 = (*env).GetStringUTFChars(string, 0);
-    return TT_SRC_Get_Version(reinterpret_cast<INT8 *>(*string1), length);
 }
 
 extern "C"
@@ -97,4 +92,121 @@ Java_util_AudioJniUtil_srcProcess(JNIEnv *env, jobject thiz, jstring src_file_pa
 
     VOID *pSrc = (VOID *) srcPtrJlong;
     return TT_SRC_Process_File(pSrc, srcFilePath, dstFilePath);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_nsInit(JNIEnv *env, jobject thiz, jobject ns_params) {
+    int ret = 0;
+    VOID *pNs = NULL;
+    // create ns
+    ret = TT_NS_Create(&pNs);
+    if (ret != 0) {
+        printf("create nc error! code=%d\n", ret);
+    }
+
+    // read ns param from java
+    jclass nsParamsJclass = (*env).GetObjectClass(ns_params);
+    if (nsParamsJclass == NULL) return -100;
+
+    jfieldID fsFieldId = (*env).GetFieldID(nsParamsJclass, "fs", "I");
+    if (fsFieldId == NULL) return -100;
+    jint fs = (*env).GetIntField(ns_params, fsFieldId);
+
+    jfieldID maxDenoiseDbFieldId = (*env).GetFieldID(nsParamsJclass, "maxDenoiseDb", "I");
+    if (maxDenoiseDbFieldId == NULL) return -100;
+    jint maxDenoiseDb = (*env).GetIntField(ns_params, maxDenoiseDbFieldId);
+
+    stNSParams stNsParams = {fs, maxDenoiseDb};
+
+    // init ns
+    ret = TT_NS_Init(pNs, &stNsParams);
+    if (ret != 0) {
+        printf("init ns error! code=%d\n", ret);
+    }
+
+    // save ns instance pointer in java
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID nsPtrJfieldId = env->GetFieldID(objectJclass, "nsPtr", "J");
+    env->SetLongField(thiz, nsPtrJfieldId, (jlong) pNs);
+    return 0;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_nsProcess(JNIEnv *env, jobject thiz, jstring src_file_path,
+                                 jstring dst_file_path) {
+
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID nsPtrFieldId = env->GetFieldID(objectJclass, "nsPtr", "J");
+    jlong nsPtrJlong = env->GetLongField(thiz, nsPtrFieldId);
+
+    char *srcFilePath = jstringTostring(env, src_file_path);
+    char *dstFilePath = jstringTostring(env, dst_file_path);
+
+    VOID *pSrc = (VOID *) nsPtrJlong;
+    return TT_NS_Process_File(pSrc, srcFilePath, dstFilePath);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_agcInit(JNIEnv *env, jobject thiz, jobject agc_params) {
+    int ret = 0;
+    VOID *pAgc = NULL;
+    // create agc
+    ret = TT_AGC_Create(&pAgc);
+    if (ret != 0) {
+        printf("create agc error! code=%d\n", ret);
+    }
+
+    // read agc param from java
+    jclass agcParamsJclass = (*env).GetObjectClass(agc_params);
+    if (agcParamsJclass == NULL) return -100;
+
+    jfieldID fsFieldId = (*env).GetFieldID(agcParamsJclass, "fs", "I");
+    if (fsFieldId == NULL) return -100;
+    jint fs = (*env).GetIntField(agc_params, fsFieldId);
+
+//    jfieldID targetLevelDbFsFieldId = (*env).GetFieldID(agcParamsJclass, "targetLevelDbfs", "I");
+//    if (targetLevelDbFsFieldId == NULL) return -100;
+//    jint targetLevelDbfs = (*env).GetIntField(agc_params, targetLevelDbFsFieldId);
+//
+//    jfieldID compressionGainDbFieldId = (*env).GetFieldID(agcParamsJclass, "compressionGainDb",
+//                                                          "I");
+//    if (compressionGainDbFieldId == NULL) return -100;
+//    jint compressionGainDb = (*env).GetIntField(agc_params, compressionGainDbFieldId);
+//
+//    jfieldID limiterEnableFieldId = (*env).GetFieldID(agcParamsJclass, "limiterEnable", "I");
+//    if (limiterEnableFieldId == NULL) return -100;
+//    jint limiterEnable = (*env).GetIntField(agc_params, limiterEnableFieldId);
+
+//    stAGCParams stAgcParams = {fs, targetLevelDbfs, compressionGainDb, limiterEnable};
+
+//    // init ns
+//    ret = TT_NS_Init(pAgc, &stNsParams);
+//    if (ret != 0) {
+//        printf("init ns error! code=%d\n", ret);
+//    }
+//
+//    // save ns instance pointer in java
+//    jclass objectJclass = env->GetObjectClass(thiz);
+//    jfieldID nsPtrJfieldId = env->GetFieldID(objectJclass, "nsPtr", "J");
+//    env->SetLongField(thiz, nsPtrJfieldId, (jlong) pAgc);
+//    return 0;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_agcProcess(JNIEnv *env, jobject thiz, jstring src_file_path,
+                                  jstring dst_file_path) {
+
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID nsPtrFieldId = env->GetFieldID(objectJclass, "agcPtr", "J");
+    jlong agcPtrJlong = env->GetLongField(thiz, nsPtrFieldId);
+
+    char *srcFilePath = jstringTostring(env, src_file_path);
+    char *dstFilePath = jstringTostring(env, dst_file_path);
+
+    VOID *pAgc = (VOID *) agcPtrJlong;
+    return TT_AGC_Process_File(pAgc, srcFilePath, dstFilePath);
 }
