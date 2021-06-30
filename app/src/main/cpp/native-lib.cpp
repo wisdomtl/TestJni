@@ -203,14 +203,37 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_util_AudioJniUtil_agcProcess(JNIEnv *env, jobject thiz, jstring src_file_path,
                                   jstring dst_file_path) {
-
     jclass objectJclass = env->GetObjectClass(thiz);
-    jfieldID nsPtrFieldId = env->GetFieldID(objectJclass, "agcPtr", "J");
-    jlong agcPtrJlong = env->GetLongField(thiz, nsPtrFieldId);
+    jfieldID agcPtrFieldId = env->GetFieldID(objectJclass, "agcPtr", "J");
+    jlong agcPtrJlong = env->GetLongField(thiz, agcPtrFieldId);
 
     char *srcFilePath = jstringTostring(env, src_file_path);
     char *dstFilePath = jstringTostring(env, dst_file_path);
 
     VOID *pAgc = (VOID *) agcPtrJlong;
     return TT_AGC_Process_File(pAgc, srcFilePath, dstFilePath);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_nsFree(JNIEnv *env, jobject thiz) {
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID nsPtrFieldId = env->GetFieldID(objectJclass, "nsPtr", "J");
+    jlong nsPtrJlong = env->GetLongField(thiz, nsPtrFieldId);
+
+    VOID *pNs = (VOID *) nsPtrJlong;
+
+    return TT_NS_Free(pNs);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_util_AudioJniUtil_agcFree(JNIEnv *env, jobject thiz) {
+    jclass objectJclass = env->GetObjectClass(thiz);
+    jfieldID agcPtrFieldId = env->GetFieldID(objectJclass, "agcPtr", "J");
+    jlong agcPtrJlong = env->GetLongField(thiz, agcPtrFieldId);
+
+    VOID *pAgc = (VOID *) agcPtrJlong;
+
+    return TT_AGC_Free(pAgc);
 }
