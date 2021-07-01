@@ -1,2 +1,3 @@
 rootProject.name = "TestJni"
 include ':app'
+include ':audioLib'
